@@ -20,7 +20,7 @@ A client call this api sequentially with different subset of applications.
 It's job is to divide the long list of stats keys into sublists of not overlapped stats key set.
 1. Each (small) sublist will be wrapped as a small job and enqueued for further processing by other worker.
 1. A worker called *Stats Deleter* receives one of those jobs containing small sublist of stats key
-and perform actual stats deletion action on database.
+1. Perform actual stats deletion operation on database in batches of keys.
 
 Some features of the designed workflow:
 
@@ -34,3 +34,5 @@ DB delete operations occur in batches.
   and start another, probably with higher priority, job. Besides, in case of failure,
   the job to be re-done is minimized.
   * Small number of batch size per each delete operation -> Minimizes db load and allows high response times.
+* Having responsive and low response times by design, that might lead to the generation of lots of stats delete jobs.
+Should not be an issue.
