@@ -1,15 +1,17 @@
-require_relative('stats_key_generator')
+require_relative('job')
 require_relative('key_idx')
+require_relative('stats_key_generator')
 
 DELETE_BATCH_SIZE = 50
 
-job = OpenStruct.new(
+job = StatsRemovalJob.new(
   applications: [1],
   metrics: [10],
   service_id: 100,
   from: Time.new(2017, 1, 1, 1),
   to: Time.new(2017, 4, 5, 1)
 )
+
 limits = [
   KeyIndex.parse_json('{"key_type":0,"metric":0,"app":0,"users":null,"granularity":0,"ts":0}'),
   KeyIndex.parse_json('{"key_type":0,"metric":0,"app":0,"users":null,"granularity":4,"ts":1486411200}')

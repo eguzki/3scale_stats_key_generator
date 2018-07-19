@@ -1,9 +1,9 @@
 require 'ostruct'
+require_relative('job')
 require_relative('stats_key_partition_generator')
 require_relative('stats_key_generator')
 
-
-job = OpenStruct.new(
+job = StatsRemovalJob.new(
   applications: [1],
   metrics: [10],
   service_id: 100,

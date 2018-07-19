@@ -22,6 +22,8 @@ module AppsKeyTypeGenerator
   end
 
   def self.apps_type_gen(job, limits)
+    job.applications ||= []
+    job.metrics ||= []
     Enumerator.new do |enum|
       app_idx_from, app_idx_to = get_app_limits(job.applications, limits)
       metric_idx_from, metric_idx_to = get_metric_limits(job.metrics, limits)

@@ -20,12 +20,14 @@ module UserKeyTypeGenerator
   end
 
   def self.user_type_gen(job, limits)
+    job.users ||= []
+    job.metrics ||= []
     Enumerator.new do |enum|
       user_idx_from, user_idx_to = get_user_limits(job.users, limits)
       metric_idx_from, metric_idx_to = get_metric_limits(job.metrics, limits)
       job.users[user_idx_from..user_idx_to].each_with_index do |user_id, user_range_idx|
         job.metrics[metric_idx_from..metric_idx_to].each_with_index do |metric_id, metric_range_idx|
-          DatetimeGenerator.datetime_generator(job, limits, :app).each do |datetime_key, granularity_idx, ts|
+          DatetimeGenerator.datetime_generator(job, limits, :user).each do |datetime_key, granularity_idx, ts|
             idx = KeyIndex.new(user: user_range_idx, metric: metric_range_idx, granularity: granularity_idx, ts: ts)
             stats_key = key(job.service_id, user_id, metric_id, datetime_key)
             enum << OpenStruct.new(idx: idx, value: stats_key)

@@ -13,6 +13,7 @@ module MetricKeyTypeGenerator
   end
 
   def self.metric_type_gen(job, limits)
+    job.metrics ||= []
     Enumerator.new do |enum|
       metric_idx_from, metric_idx_to = get_metric_limits(job.metrics, limits)
       job.metrics[metric_idx_from..metric_idx_to].each_with_index do |metric_id, metric_range_idx|
