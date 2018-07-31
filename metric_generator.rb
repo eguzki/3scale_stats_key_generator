@@ -1,6 +1,8 @@
-require_relative('key_type_metrics_gen')
-require_relative('key_type_apps_gen')
-require_relative('key_type_user_gen')
+class MetricGenerator < Generator
+end
+
+
+
 
 module KeyTypeGenerator
   KEY_TYPE_GENERATORS = [

@@ -11,9 +11,9 @@ job = StatsRemovalJob.new(
   to: Time.new(2017, 1, 1, 2)
 )
 
-stats_key_gen = StatsKeyGenerator.index_generator(job)
+stats_key_idx_gen = StatsKeyGenerator.instance.gen_idx(job)
 
-PartitionGenerator.partitions(stats_key_gen).each do |from, to|
+PartitionGenerator.partitions(stats_key_idx_gen).each do |from, to|
   # generate resque job
   puts "from: #{from.to_json}"
   puts "to: #{to.to_json}"
