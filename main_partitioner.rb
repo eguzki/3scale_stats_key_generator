@@ -5,10 +5,10 @@ require_relative('stats_key_generator')
 
 job = StatsRemovalJob.new(
   applications: [1],
-  metrics: [10],
+  metrics: Array.new(30) { |idx| (idx + 1) * 10 },
   service_id: 100,
   from: Time.new(2017, 1, 1, 1),
-  to: Time.new(2017, 4, 5, 1)
+  to: Time.new(2017, 1, 1, 2)
 )
 
 stats_key_gen = StatsKeyGenerator.index_generator(job)
