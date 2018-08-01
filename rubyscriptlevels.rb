@@ -34,8 +34,7 @@ class Type
   def get_generator(type_idx)
     Enumerator.new do |yielder|
       root_level.get_generator(0).each do |key_data, key_level_idx|
-        type_idx = {type: type_idx, idx: key_level_idx}
-        yielder << [key_formatter.get_key(key_data), type_idx]
+        yielder << [key_formatter.get_key(key_data), { type: type_idx, levels: key_level_idx }]
       end
     end
   end
@@ -59,8 +58,7 @@ class GeneratorLevel
     Enumerator.new do |yielder|
       level_generator.each do |elem, elem_idx|
         next_level.get_generator(level+1).each do |next_level_elem, next_level_idx|
-          level_idx = {level_idx: level, idx: elem_idx}
-          # TODO The problem is in the merge
+          level_idx = { level => elem_idx }
           yielder << [elem.merge(next_level_elem), level_idx.merge(next_level_idx)]
         end
       end
@@ -73,9 +71,7 @@ class GeneratorLevel
     Enumerator.new do |yielder|
       generators.each_with_index do |generator, gen_idx|
         generator.get_generator.each do |elem, elem_idx|
-          obj = {}
-          obj[param] = elem
-          yielder << [obj, {generator_index: gen_idx, idx: elem_idx}]
+          yielder << [{ param => elem }, { generator_index: gen_idx, idx: elem_idx }]
         end
       end
     end
