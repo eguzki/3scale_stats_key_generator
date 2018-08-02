@@ -11,81 +11,97 @@ class StatsKeyGenerator
     types << type
   end
 
-  def get_generator
+  def generator
     Enumerator.new do |yielder|
       types.each_with_index do |type, type_idx|
-        type.get_generator(type_idx).each do | key, key_idx |
-          yielder << [key, key_idx]
+        type.generator.each do |key, keytype_idx|
+          yielder << [key, { type: type_idx, key_part: keytype_idx }]
         end
       end
     end
   end
 end
 
-class Type
-  attr_reader :key_formatter, :id, :root_level
+class KeyType
+  attr_reader :key_formatter, :key_parts
 
-  def initialize(id, key_formatter, root_level)
-    @id = id
+  def initialize(key_formatter)
     @key_formatter = key_formatter
-    @root_level = root_level
+    @key_parts = []
   end
 
-  def get_generator(type_idx)
-    Enumerator.new do |yielder|
-      root_level.get_generator(0).each do |key_data, key_level_idx|
-        yielder << [key_formatter.get_key(key_data), { type: type_idx, levels: key_level_idx }]
+  def <<(keypart)
+    key_parts << keypart
+  end
+
+  def generator
+    # combine keys from all keyparts
+    # recursive cartessian product generator
+    key_part_chain_head = build_key_part_chain
+    key_part_chain_head.generator.lazy.map { |key_data, idx| [key_formatter.get_key(key_data), idx] }
+  end
+
+  private
+
+  class KeyPartElement
+    attr_reader :key_part
+    attr_accessor :next_key_part
+
+    def initialize(key_part)
+      @key_part = key_part
+      @next_key_part = nil
+    end
+
+    def generator
+      Enumerator.new do |yielder|
+        key_part.generator.each do |key_part_elem, key_part_idx|
+          next_key_part.generator.each do |next_key_part_elem, next_key_part_idx|
+            current_idx = { key_part.id => key_part_idx }
+            yielder << [key_part_elem.merge(next_key_part_elem), current_idx.merge(next_key_part_idx)]
+          end
+        end
       end
     end
   end
+
+  class EmptyKeyPartElement
+    def generator
+      Enumerator.new do |yielder|
+        yielder << [{}, {}]
+      end
+    end
+  end
+
+  # Build linked lists of KeyPart generators
+  # Last element is EmptyKeyPartElement
+  def build_key_part_chain
+    key_part_list = key_parts.map { |key_part| KeyPartElement.new(key_part) }
+    key_part_list.each_cons(2) { |parent, child| parent.next_key_part = child }
+    key_part_list.last.next_key_part = EmptyKeyPartElement.new
+    key_part_list.first
+  end
 end
 
-class GeneratorLevel
-  attr_reader :generators, :id, :param, :next_level
+class KeyPart
+  attr_reader :generators, :id
 
-  def initialize(id, param, next_level)
+  def initialize(id)
     @generators = []
     @id = id
-    @param = param
-    @next_level = next_level
   end
 
   def <<(generator)
     generators << generator
   end
 
-  def get_generator(level)
-    Enumerator.new do |yielder|
-      level_generator.each do |elem, elem_idx|
-        next_level.get_generator(level+1).each do |next_level_elem, next_level_idx|
-          level_idx = { level => elem_idx }
-          yielder << [elem.merge(next_level_elem), level_idx.merge(next_level_idx)]
-        end
-      end
-    end
-  end
-
-  private
-
-  def level_generator
+  # serialize N generators
+  def generator
     Enumerator.new do |yielder|
       generators.each_with_index do |generator, gen_idx|
-        generator.get_generator.each do |elem, elem_idx|
-          yielder << [{ param => elem }, { generator_index: gen_idx, idx: elem_idx }]
+        generator.generator.each do |elem, elem_idx|
+          yielder << [{ id => elem }, { generator_index: gen_idx, idx: elem_idx }]
         end
       end
-    end
-  end
-end
-
-class EmptyGeneratorLevel < GeneratorLevel
-  def initialize
-
-  end
-
-  def get_generator(_level)
-    Enumerator.new do |yielder|
-      yielder << [{}, {}]
     end
   end
 end
@@ -95,7 +111,8 @@ class CustomGenerator
   def initialize(id)
     @id = id
   end
-  def get_generator
+
+  def generator
     Enumerator.new do |yielder|
       5.times.each do |i|
         yielder << ["#{id}_#{i}", i]
@@ -120,27 +137,29 @@ class CustomKeyFormatter2
 
 end
 
-time_level = GeneratorLevel.new("time_level", :period, EmptyGeneratorLevel.new)
-time_hour_generator = CustomGenerator.new("hour")
-time_day_generator = CustomGenerator.new("day")
+period_keypart = KeyPart.new(:period)
+period_keypart << CustomGenerator.new('hour')
+period_keypart << CustomGenerator.new('day')
 
-app_level = GeneratorLevel.new("app_level", :app, time_level)
-app_generator = CustomGenerator.new("ap")
+app_keypart = KeyPart.new(:app)
+app_keypart << CustomGenerator.new('ap')
 
-metric_level = GeneratorLevel.new("metric_level", :metric, app_level)
-metric_generator = CustomGenerator.new("met")
+metric_keypart = KeyPart.new(:metric)
+metric_keypart << CustomGenerator.new('met')
 
-time_level << time_hour_generator
-time_level << time_day_generator
-app_level << app_generator
-metric_level << metric_generator
+key_type01 = KeyType.new(CustomKeyFormatter.new)
+key_type01 << period_keypart
+key_type01 << app_keypart
+key_type01 << metric_keypart
 
-application_metric = Type.new("application_metric", CustomKeyFormatter.new, metric_level)
-other_metric = Type.new("other_metric", CustomKeyFormatter2.new, metric_level)
+key_type02 = KeyType.new(CustomKeyFormatter2.new)
+key_type02 << period_keypart
+key_type02 << app_keypart
+key_type02 << metric_keypart
 
 key_gen = StatsKeyGenerator.new
-key_gen << application_metric
-key_gen << other_metric
+key_gen << key_type01
+key_gen << key_type02
 
 require 'pp'
-key_gen.get_generator.take(5).each { |elem| pp elem }
+key_gen.generator.take(5).each { |elem| pp elem }
