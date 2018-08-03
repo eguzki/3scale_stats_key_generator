@@ -179,8 +179,8 @@ class KeyPart
       # with the current one being processed.
       gens_lim_start, gens_lims_end = get_generators_limits(limits) 
       generators[gens_lim_start..gens_lims_end].each_with_index do |gen, rel_gen_idx|
-        gen_lims = get_generator_limits(limits)
         gen_idx = rel_gen_idx + gens_lim_start
+        gen_lims = get_generator_limits(gen_idx, limits)
         gen.generator(gen_lims).each do |elem, elem_idx|
           yielder << [{ id => elem }, { generator_index: gen_idx, idx: elem_idx }]
         end
@@ -191,17 +191,42 @@ class KeyPart
   private
 
   def get_generators_limits(limits)
-    return [0, generators.size - 1] if !limits
+    return [0, generators.size - 1] if !limits # TODO can this happen?
     # TODO Raise exception if some limits component is zero or return defaults???
-    lim_start = limits[0][GENERATOR_IDX_FIELD_NAME]
-    lim_end = limits[1][GENERATOR_IDX_FIELD_NAME]
+    if !limits[0]
+      lim_start = 0
+    else
+      lim_start = limits[0][GENERATOR_IDX_FIELD_NAME] # TODO could this happen to be nil?
+    end
+
+    if !limits[1]
+      lim_end = generators.size - 1
+    else
+      lim_end = limits[1][GENERATOR_IDX_FIELD_NAME] # TODO could this happen to be nil?
+    end
+
     [lim_start, lim_end]
   end
 
-  def get_generator_limits(limits)
+  def get_generator_limits(gen_idx, limits)
     return nil if !limits
-    lim_start = limits[0][GENERATOR_CONTENT_IDX_FIELD_NAME]
-    lim_end = limits[1][GENERATOR_CONTENT_IDX_FIELD_NAME]
+
+    if !limits[0]
+      lim_start = nil
+    elsif limits[0][GENERATOR_IDX_FIELD_NAME] == gen_idx #TODO could this happen to be nil??
+      lim_start = limits[0][GENERATOR_CONTENT_IDX_FIELD_NAME]
+    else
+      lim_start = nil
+    end
+
+    if !limits[1]
+      lim_end = nil
+    elsif limits[1][GENERATOR_IDX_FIELD_NAME] == gen_idx #TODO could this happen to be nil??
+      lim_end = limits[1][GENERATOR_CONTENT_IDX_FIELD_NAME]
+    else
+      lim_end = nil
+    end
+
     [lim_start, lim_end]
   end
 end
@@ -237,11 +262,13 @@ class CustomGenerator
   end
 
   def get_generator_content_limits(limits)
-    if !limits
+    if !limits # TODO could this be nil?
       #TODO should get the corresponding elements from service_context
-      [@original_from_idx, @original_to_idx]
+      content_limits = [@original_from_idx, @original_to_idx]
     else
-      return limits
+      lim_start = limits[0] || @original_from_idx
+      lim_end = limits[1] || @original_to_idx
+      content_limits = [lim_start, lim_end]
     end
   end
 end
