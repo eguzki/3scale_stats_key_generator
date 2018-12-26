@@ -13,15 +13,13 @@ job = {
   to: Time.new(2017, 1, 1, 2).to_i
 }
 
-stats_key_types = StatsKeysFactory.create
+stats_key_types = StatsKeysFactory.create(job)
 
 stats_key_gen = KeyGenerator.new(stats_key_types, job: job)
 
 partition_generator = PartitionGenerator.new(stats_key_gen)
 
-partition_generator.partitions(PARTITION_BATCH_SIZE).each do |from_limit, to_limit|
+partition_generator.partitions(PARTITION_BATCH_SIZE).each do |idx|
   # generate resque job
-  puts '=== Partition ==='
-  puts "from: #{from_limit.to_json}"
-  puts "to: #{to_limit.to_json}"
+  puts({ job: '', offset: idx, length: PARTITION_BATCH_SIZE }.to_json)
 end

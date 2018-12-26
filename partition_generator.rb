@@ -4,6 +4,6 @@ class PartitionGenerator
   end
 
   def partitions(size)
-    @key_gen.indexes.each_slice(size).lazy.map { |slice| [slice.first, slice.last] }
+    0.step(@key_gen.size, size)
   end
 end
