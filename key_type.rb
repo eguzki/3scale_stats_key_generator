@@ -40,10 +40,8 @@ class KeyType
   end
 
   class EmptyKeyPartElement
-    def generator(*)
-      Enumerator.new do |yielder|
-        yielder << [{}, {}]
-      end
+    def generator
+      [{}]
     end
   end
 

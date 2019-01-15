@@ -4,6 +4,6 @@ class PartitionGenerator
   end
 
   def partitions(size)
-    0.step(@key_gen.size, size)
+    0.step(@key_gen.keys.count, size)
   end
 end
