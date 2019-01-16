@@ -2,6 +2,8 @@ require 'json'
 require_relative('stats_key_factory')
 require_relative('key_generator')
 
+DELETE_BATCH_SIZE = 10
+
 job = {
   job: {
     applications: [1],
@@ -10,7 +12,7 @@ job = {
     from: Time.new(2017, 1, 1, 1).to_i,
     to: Time.new(2017, 1, 1, 2).to_i
   },
-  offset: 150,
+  offset: 100,
   length: 50
 }
 
@@ -21,11 +23,11 @@ job = {
 ## metrics is array
 ## service_id exists, maybe service_id exists in db?
 
-stats_key_types = StatsKeysFactory.create(job.job)
+stats_key_types = StatsKeysFactory.create(job[:job])
 
 stats_key_gen = KeyGenerator.new(stats_key_types)
 
-stats_key_gen.keys.drop().take().each do |slice|
+stats_key_gen.keys.drop(job[:offset]).take(job[:length]).each_slice(DELETE_BATCH_SIZE) do |slice|
   puts '============== delete batch ====================='
   puts slice.inspect
 end
